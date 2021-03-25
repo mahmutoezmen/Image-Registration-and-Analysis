@@ -1,0 +1,988 @@
+
+elastix is started at Thu Mar 25 12:46:04 2021.
+
+which elastix:   elastix
+elastix runs at: mahmut-X555LJ
+  Linux 5.8.0-48-generic (x64), #54~20.04.1-Ubuntu SMP Sat Mar 20 13:40:25 UTC 2021
+  with 7863 MB memory, and 2 cores @ 2429 MHz.
+-------------------------------------------------------------------------
+
+Running elastix with parameter file 0: "Parameters/Parameters_Affine.txt".
+
+Current time: Thu Mar 25 12:46:04 2021.
+Reading the elastix parameters from file ...
+
+Installing all components.
+InstallingComponents was successful.
+
+ELASTIX version: 5.0.1
+Command line options from ElastixBase:
+-f        fixed.png
+-m        moving.png
+-fMask    unspecified, so no fixed mask used
+-mMask    unspecified, so no moving mask used
+-out      Desktop/
+-p        Parameters/Parameters_Affine.txt
+-threads  unspecified, so all available threads are used
+Command line options from TransformBase:
+-t0       unspecified, so no initial transform used
+
+=============== start of ParameterFile: Parameters/Parameters_Affine.txt ===============
+// Example parameter file for affine registration
+// C-style comments: //
+
+// The internal pixel type, used for internal computations
+// Leave to float in general. 
+// NB: this is not the type of the input images! The pixel 
+// type of the input images is automatically read from the 
+// images themselves.
+// This setting can be changed to "short" to save some memory
+// in case of very large 3D images.
+(FixedInternalImagePixelType "float")
+(MovingInternalImagePixelType "float")
+
+
+
+// Specify whether you want to take into account the so-called
+// direction cosines of the images. Recommended: true.
+// In some cases, the direction cosines of the image are corrupt,
+// due to image format conversions for example. In that case, you 
+// may want to set this option to "false".
+(UseDirectionCosines "true")
+
+// **************** Main Components **************************
+
+// The following components should usually be left as they are:
+(Registration "MultiResolutionRegistration")
+(Interpolator "BSplineInterpolator")
+(ResampleInterpolator "FinalBSplineInterpolator")
+(Resampler "DefaultResampler")
+
+// These may be changed to Fixed/MovingSmoothingImagePyramid.
+// See the manual.
+(FixedImagePyramid "FixedRecursiveImagePyramid")
+(MovingImagePyramid "MovingRecursiveImagePyramid")
+
+// The following components are most important:
+// The optimizer AdaptiveStochasticGradientDescent (ASGD) works
+// quite ok in general. The Transform and Metric are important
+// and need to be chosen careful for each application. See manual.
+(Optimizer "QuasiNewtonLBFGS")
+(Transform "AffineTransform")
+(Metric "NormalizedMutualInformation")
+
+// ***************** Transformation **************************
+
+// Scales the affine matrix elements compared to the translations, to make
+// sure they are in the same range. In general, it's best to  
+// use automatic scales estimation:
+(AutomaticScalesEstimation "true")
+
+// Automatically guess an initial translation by aligning the
+// geometric centers of the fixed and moving.
+(AutomaticTransformInitialization "true")
+
+// Whether transforms are combined by composition or by addition.
+// In generally, Compose is the best option in most cases.
+// It does not influence the results very much.
+(HowToCombineTransforms "Compose")
+
+// ******************* Similarity measure *********************
+
+// Number of grey level bins in each resolution level,
+// for the mutual information. 16 or 32 usually works fine.
+// You could also employ a hierarchical strategy:
+//(NumberOfHistogramBins 16 32 64)
+(NumberOfHistogramBins 32)
+
+// If you use a mask, this option is important. 
+// If the mask serves as region of interest, set it to false.
+// If the mask indicates which pixels are valid, then set it to true.
+// If you do not use a mask, the option doesn't matter.
+(ErodeMask "false")
+
+// ******************** Multiresolution **********************
+
+// The number of resolutions. 1 Is only enough if the expected
+// deformations are small. 3 or 4 mostly works fine. For large
+// images and large deformations, 5 or 6 may even be useful.
+(NumberOfResolutions 4)
+
+// The downsampling/blurring factors for the image pyramids.
+// By default, the images are downsampled by a factor of 2
+// compared to the next resolution.
+// So, in 2D, with 4 resolutions, the following schedule is used:
+//(ImagePyramidSchedule 8 8  4 4  2 2  1 1 )
+// And in 3D:
+//(ImagePyramidSchedule 8 8 8  4 4 4  2 2 2  1 1 1 )
+// You can specify any schedule, for example:
+//(ImagePyramidSchedule 4 4  4 3  2 1  1 1 )
+// Make sure that the number of elements equals the number
+// of resolutions times the image dimension.
+
+// ******************* Optimizer ****************************
+
+// Maximum number of iterations in each resolution level:
+// 200-500 works usually fine for affine registration.
+// For more robustness, you may increase this to 1000-2000.
+(MaximumNumberOfIterations 250)
+
+// The step size of the optimizer, in mm. By default the voxel size is used.
+// which usually works well. In case of unusual high-resolution images
+// (eg histology) it is necessary to increase this value a bit, to the size
+// of the "smallest visible structure" in the image:
+//(MaximumStepLength 1.0)
+
+// **************** Image sampling **********************
+
+// Number of spatial samples used to compute the mutual
+// information (and its derivative) in each iteration.
+// With an AdaptiveStochasticGradientDescent optimizer,
+// in combination with the two options below, around 2000
+// samples may already suffice.
+(NumberOfSpatialSamples 2048)
+
+// Refresh these spatial samples in every iteration, and select
+// them randomly. See the manual for information on other sampling
+// strategies.
+(NewSamplesEveryIteration "true")
+(ImageSampler "Random")
+
+// ************* Interpolation and Resampling ****************
+
+// Order of B-Spline interpolation used during registration/optimisation.
+// It may improve accuracy if you set this to 3. Never use 0.
+// An order of 1 gives linear interpolation. This is in most 
+// applications a good choice.
+(BSplineInterpolationOrder 1)
+
+// Order of B-Spline interpolation used for applying the final
+// deformation.
+// 3 gives good accuracy; recommended in most cases.
+// 1 gives worse accuracy (linear interpolation)
+// 0 gives worst accuracy, but is appropriate for binary images
+// (masks, segmentations); equivalent to nearest neighbor interpolation.
+(FinalBSplineInterpolationOrder 3)
+
+//Default pixel value for pixels that come from outside the picture:
+(DefaultPixelValue 0)
+
+// Choose whether to generate the deformed moving image.
+// You can save some time by setting this to false, if you are
+// only interested in the final (nonrigidly) deformed moving image
+// for example.
+(WriteResultImage "true")
+
+// The pixel type and format of the resulting deformed moving image
+(ResultImagePixelType "short")
+(ResultImageFormat "nii")
+
+
+
+
+
+=============== end of ParameterFile: Parameters/Parameters_Affine.txt ===============
+
+
+Reading images...
+Reading images took 18 ms.
+
+WARNING: the fixed pyramid schedule is not fully specified!
+  A default pyramid schedule is used.
+WARNING: the moving pyramid schedule is not fully specified!
+  A default pyramid schedule is used.
+WARNING: The parameter "AutomaticTransformInitializationMethod", requested at entry number 0, does not exist at all.
+  The default value "GeometricalCenter" is used instead.
+Transform parameters are initialized as: [1, 0, 0, 1, 0, 0]
+InitializeTransform took 0.00s
+Scales are estimated automatically.
+Scales for transform parameters are: [4106.666666666667, 5546.666666666667, 4106.666666666667, 5546.666666666667, 1, 1]
+WARNING: The parameter "GenerateLineSearchIterations", requested at entry number 0, does not exist at all.
+  The default value "false" is used instead.
+Initialization of all components (before registration) took: 47 ms.
+Preparation of the image pyramids took: 14 ms.
+
+Resolution: 0
+WARNING: The parameter "ShowExactMetricValue", requested at entry number 0, does not exist at all.
+  The default value "false" is used instead.
+WARNING: The parameter "CheckNumberOfSamples", requested at entry number 0, does not exist at all.
+  The default value "true" is used instead.
+WARNING: The parameter "UseMultiThreadingForMetrics", requested at entry number 0, does not exist at all.
+  The default value "true" is used instead.
+Setting the fixed masks took: 0 ms.
+Setting the moving masks took: 0 ms.
+WARNING: The parameter "NumberOfFixedHistogramBins", requested at entry number 0, does not exist at all.
+  The default value "32" is used instead.
+WARNING: The parameter "NumberOfMovingHistogramBins", requested at entry number 0, does not exist at all.
+  The default value "32" is used instead.
+WARNING: The parameter "FixedLimitRangeRatio", requested at entry number 0, does not exist at all.
+  The default value "0.01" is used instead.
+WARNING: The parameter "MovingLimitRangeRatio", requested at entry number 0, does not exist at all.
+  The default value "0.01" is used instead.
+WARNING: The parameter "FixedKernelBSplineOrder", requested at entry number 0, does not exist at all.
+  The default value "0" is used instead.
+WARNING: The parameter "MovingKernelBSplineOrder", requested at entry number 0, does not exist at all.
+  The default value "3" is used instead.
+WARNING: The parameter "MaximumNumberOfLineSearchIterations", requested at entry number 0, does not exist at all.
+  The default value "20" is used instead.
+WARNING: The parameter "StepLength", requested at entry number 0, does not exist at all.
+  The default value "1" is used instead.
+WARNING: The parameter "LineSearchValueTolerance", requested at entry number 0, does not exist at all.
+  The default value "0.0001" is used instead.
+WARNING: The parameter "LineSearchGradientTolerance", requested at entry number 0, does not exist at all.
+  The default value "0.9" is used instead.
+WARNING: The parameter "GradientMagnitudeTolerance", requested at entry number 0, does not exist at all.
+  The default value "1e-06" is used instead.
+WARNING: The parameter "LBFGSUpdateAccuracy", requested at entry number 0, does not exist at all.
+  The default value "5" is used instead.
+WARNING: The parameter "StopIfWolfeNotSatisfied", requested at entry number 0, does not exist at all.
+  The default value "true" is used instead.
+Elastix initialization of all components (for this resolution) took: 15 ms.
+  Computing the fixed image extrema took 8 ms.
+  Computing the moving image extrema took 0 ms.
+Initialization of NormalizedMutualInformation metric took: 13 ms.
+1:ItNr	1a:SrchDirNr	1b:LineItNr	2:Metric	3:StepLength	4a:||Gradient||	4b:||SearchDir||	4c:DirGradient	5:Phase	6a:Wolfe1	6b:Wolfe2	7:LinSrchStopCondition	Time[ms]
+0	0	0	-1.161357	1.000000	0.007416	1.000000	-0.004714	Main	true	true	WolfeSatisfied	20.3
+1	1	0	-1.165654	1.000000	0.006635	2.747474	-0.007662	Main	true	true	WolfeSatisfied	5.9
+2	2	1	-1.257606	5.000000	0.010889	3.354128	-0.002544	Main	true	true	WolfeSatisfied	6.5
+3	3	1	-1.263978	0.116028	0.014189	30.144975	0.042211	Main	true	true	WolfeSatisfied	5.3
+4	4	0	-1.298242	1.000000	0.017838	3.982531	-0.022415	Main	true	true	WolfeSatisfied	3.2
+5	5	1	-1.349281	0.301943	0.027013	17.860013	0.014931	Main	true	true	WolfeSatisfied	4.3
+6	6	1	-1.368320	0.259490	0.028655	10.479697	-0.015358	Main	true	true	WolfeSatisfied	5.2
+7	7	1	-1.422738	0.496737	0.026534	4.515920	-0.042804	Main	true	true	WolfeSatisfied	4.4
+8	8	2	-1.429969	0.069273	0.016963	8.685789	-0.056534	Main	true	true	WolfeSatisfied	6.0
+9	9	0	-1.430092	1.000000	0.013791	1.107049	-0.002545	Main	true	true	WolfeSatisfied	3.0
+10	10	1	-1.433399	0.215252	0.012178	1.247646	-0.009253	Main	true	true	WolfeSatisfied	4.4
+11	11	1	-1.436825	0.303834	0.009014	0.545948	-0.003052	Main	true	true	WolfeSatisfied	4.4
+12	12	11	-1.429622	0.215610	0.006509	0.316980	-0.001658	Main	true	true	WolfeSatisfied	18.6
+13	13	19	-1.430442	0.002386	0.004978	0.705167	-0.002565	Main	true	false	MaxNrIterations	42.8
+Time spent in resolution 0 (ITK initialization and iterating): 0.140 s.
+Stopping condition: Wolfe conditions are not satisfied.
+
+Resolution: 1
+WARNING: The parameter "ShowExactMetricValue", requested at entry number 1, does not exist at all.
+  The default value "false" is used instead.
+WARNING: The parameter "CheckNumberOfSamples", requested at entry number 1, does not exist at all.
+  The default value "true" is used instead.
+WARNING: The parameter "UseMultiThreadingForMetrics", requested at entry number 1, does not exist at all.
+  The default value "true" is used instead.
+Setting the fixed masks took: 0 ms.
+Setting the moving masks took: 0 ms.
+WARNING: The parameter "NumberOfFixedHistogramBins", requested at entry number 1, does not exist at all.
+  The default value "32" is used instead.
+WARNING: The parameter "NumberOfMovingHistogramBins", requested at entry number 1, does not exist at all.
+  The default value "32" is used instead.
+WARNING: The parameter "FixedLimitRangeRatio", requested at entry number 1, does not exist at all.
+  The default value "0.01" is used instead.
+WARNING: The parameter "MovingLimitRangeRatio", requested at entry number 1, does not exist at all.
+  The default value "0.01" is used instead.
+WARNING: The parameter "FixedKernelBSplineOrder", requested at entry number 1, does not exist at all.
+  The default value "0" is used instead.
+WARNING: The parameter "MovingKernelBSplineOrder", requested at entry number 1, does not exist at all.
+  The default value "3" is used instead.
+WARNING: The parameter "MaximumNumberOfLineSearchIterations", requested at entry number 1, does not exist at all.
+  The default value "20" is used instead.
+WARNING: The parameter "StepLength", requested at entry number 1, does not exist at all.
+  The default value "1" is used instead.
+WARNING: The parameter "LineSearchValueTolerance", requested at entry number 1, does not exist at all.
+  The default value "0.0001" is used instead.
+WARNING: The parameter "LineSearchGradientTolerance", requested at entry number 1, does not exist at all.
+  The default value "0.9" is used instead.
+WARNING: The parameter "GradientMagnitudeTolerance", requested at entry number 1, does not exist at all.
+  The default value "1e-06" is used instead.
+WARNING: The parameter "LBFGSUpdateAccuracy", requested at entry number 1, does not exist at all.
+  The default value "5" is used instead.
+WARNING: The parameter "StopIfWolfeNotSatisfied", requested at entry number 1, does not exist at all.
+  The default value "true" is used instead.
+Elastix initialization of all components (for this resolution) took: 0 ms.
+  Computing the fixed image extrema took 0 ms.
+  Computing the moving image extrema took 0 ms.
+Initialization of NormalizedMutualInformation metric took: 0 ms.
+1:ItNr	1a:SrchDirNr	1b:LineItNr	2:Metric	3:StepLength	4a:||Gradient||	4b:||SearchDir||	4c:DirGradient	5:Phase	6a:Wolfe1	6b:Wolfe2	7:LinSrchStopCondition	Time[ms]
+0	0	0	-1.409812	1.000000	0.026232	1.000000	-0.001014	Main	true	true	WolfeSatisfied	6.3
+1	1	1	-1.416615	0.376870	0.025413	0.717915	0.000052	Main	true	true	WolfeSatisfied	4.3
+2	2	0	-1.416442	1.000000	0.025086	0.247232	-0.003969	Main	true	true	WolfeSatisfied	3.0
+3	3	1	-1.441345	0.522924	0.050558	3.475264	-0.010862	Main	true	true	WolfeSatisfied	4.2
+4	4	0	-1.446866	1.000000	0.052272	1.434087	0.014154	Main	true	true	WolfeSatisfied	3.0
+5	5	0	-1.446085	1.000000	0.020901	0.481122	-0.003289	Main	true	true	WolfeSatisfied	2.7
+6	6	0	-1.448080	1.000000	0.013754	0.232590	0.002371	Main	true	true	WolfeSatisfied	2.9
+7	7	0	-1.454683	1.000000	0.002325	0.241591	0.000112	Main	true	true	WolfeSatisfied	2.8
+8	8	0	-1.455565	1.000000	0.001140	0.109038	0.000021	Main	true	true	WolfeSatisfied	3.4
+9	9	0	-1.457074	1.000000	0.003320	0.190189	0.000264	Main	true	true	WolfeSatisfied	3.3
+10	10	0	-1.455898	1.000000	0.003093	0.252590	0.000204	Main	true	true	WolfeSatisfied	3.0
+11	11	0	-1.453538	1.000000	0.003583	0.099243	0.000152	Main	true	true	WolfeSatisfied	3.0
+12	12	0	-1.460308	1.000000	0.001471	0.079310	-0.000060	Main	true	true	WolfeSatisfied	2.9
+13	13	0	-1.457934	1.000000	0.006662	0.175096	0.000462	Main	true	true	WolfeSatisfied	2.8
+14	14	0	-1.451180	1.000000	0.002375	0.081527	0.000123	Main	true	true	WolfeSatisfied	3.0
+15	15	0	-1.451561	1.000000	0.004979	0.129447	-0.000316	Main	true	true	WolfeSatisfied	2.8
+16	16	0	-1.454138	1.000000	0.001776	0.073577	-0.000017	Main	true	true	WolfeSatisfied	3.0
+17	17	0	-1.449638	1.000000	0.006934	0.142517	0.000577	Main	true	true	WolfeSatisfied	3.7
+18	18	0	-1.456588	1.000000	0.003068	0.088134	-0.000041	Main	true	true	WolfeSatisfied	3.0
+19	19	0	-1.453110	1.000000	0.002463	0.100409	0.000117	Main	true	true	WolfeSatisfied	3.0
+20	20	0	-1.457064	1.000000	0.002042	0.065107	0.000073	Main	true	true	WolfeSatisfied	2.8
+21	21	0	-1.450244	1.000000	0.004099	0.118411	-0.000266	Main	true	true	WolfeSatisfied	3.0
+22	22	0	-1.453031	1.000000	0.002681	0.081056	-0.000068	Main	true	true	WolfeSatisfied	2.9
+23	23	0	-1.458307	1.000000	0.004774	0.119555	0.000380	Main	true	true	WolfeSatisfied	3.0
+24	24	0	-1.456263	1.000000	0.003431	0.118415	-0.000255	Main	true	true	WolfeSatisfied	3.0
+25	25	0	-1.457529	1.000000	0.003260	0.180093	0.000392	Main	true	true	WolfeSatisfied	2.9
+26	26	0	-1.451664	1.000000	0.004659	0.140334	-0.000004	Main	true	true	WolfeSatisfied	3.5
+27	27	0	-1.457222	1.000000	0.005170	0.113455	0.000281	Main	true	true	WolfeSatisfied	3.9
+28	28	0	-1.447786	1.000000	0.003936	0.088012	0.000254	Main	true	true	WolfeSatisfied	4.2
+29	29	0	-1.451880	1.000000	0.005330	0.083897	-0.000193	Main	true	true	WolfeSatisfied	3.2
+30	30	0	-1.457475	1.000000	0.003629	0.081324	-0.000089	Main	true	true	WolfeSatisfied	3.1
+31	31	0	-1.457788	1.000000	0.006603	0.103640	0.000504	Main	true	true	WolfeSatisfied	3.1
+32	32	0	-1.455233	1.000000	0.003679	0.082168	-0.000184	Main	true	true	WolfeSatisfied	3.2
+33	33	0	-1.454158	1.000000	0.002452	0.057788	0.000112	Main	true	true	WolfeSatisfied	5.3
+34	34	0	-1.454581	1.000000	0.003109	0.066901	-0.000170	Main	true	true	WolfeSatisfied	3.7
+35	35	0	-1.456718	1.000000	0.006518	0.136068	0.000716	Main	true	true	WolfeSatisfied	6.2
+36	36	0	-1.453039	1.000000	0.002401	0.057864	-0.000074	Main	true	true	WolfeSatisfied	6.1
+37	37	0	-1.455763	1.000000	0.002131	0.058640	0.000032	Main	true	true	WolfeSatisfied	4.7
+38	38	0	-1.450920	1.000000	0.003556	0.074879	0.000006	Main	true	true	WolfeSatisfied	3.1
+39	39	0	-1.456230	1.000000	0.002469	0.067911	-0.000057	Main	true	true	WolfeSatisfied	4.0
+40	40	0	-1.455806	1.000000	0.002819	0.096032	-0.000018	Main	true	true	WolfeSatisfied	4.7
+41	41	0	-1.453423	1.000000	0.005016	0.114244	-0.000388	Main	true	true	WolfeSatisfied	5.9
+42	42	0	-1.454344	1.000000	0.005416	0.117542	0.000549	Main	true	true	WolfeSatisfied	3.1
+43	43	0	-1.459024	1.000000	0.007744	0.125101	0.000341	Main	true	true	WolfeSatisfied	3.0
+44	44	0	-1.459403	1.000000	0.002472	0.046678	-0.000052	Main	true	true	WolfeSatisfied	3.0
+45	45	0	-1.457991	1.000000	0.002535	0.066687	-0.000063	Main	true	true	WolfeSatisfied	3.0
+46	46	0	-1.455205	1.000000	0.002651	0.090584	-0.000189	Main	true	true	WolfeSatisfied	3.0
+47	47	0	-1.456341	1.000000	0.004334	0.131854	-0.000385	Main	true	true	WolfeSatisfied	3.4
+48	48	0	-1.455822	1.000000	0.003671	0.085923	-0.000138	Main	true	true	WolfeSatisfied	3.0
+49	49	0	-1.455494	1.000000	0.001997	0.090380	0.000116	Main	true	true	WolfeSatisfied	3.0
+50	50	0	-1.447525	1.000000	0.003616	0.119024	-0.000210	Main	true	true	WolfeSatisfied	3.0
+51	51	0	-1.452967	1.000000	0.012146	0.143295	0.001231	Main	true	true	WolfeSatisfied	3.5
+52	52	0	-1.447560	1.000000	0.004176	0.070979	-0.000258	Main	true	true	WolfeSatisfied	3.1
+53	53	0	-1.457697	1.000000	0.004708	0.094445	0.000167	Main	true	true	WolfeSatisfied	3.2
+54	54	0	-1.446946	1.000000	0.003235	0.076820	-0.000199	Main	true	true	WolfeSatisfied	3.3
+55	55	0	-1.458713	1.000000	0.003737	0.061232	-0.000056	Main	true	true	WolfeSatisfied	3.2
+56	56	0	-1.454751	1.000000	0.004953	0.132574	0.000508	Main	true	true	WolfeSatisfied	3.1
+57	57	0	-1.456807	1.000000	0.005292	0.097785	0.000061	Main	true	true	WolfeSatisfied	3.0
+58	58	0	-1.452101	1.000000	0.003135	0.098361	-0.000132	Main	true	true	WolfeSatisfied	3.0
+59	59	0	-1.450740	1.000000	0.002123	0.044455	-0.000004	Main	true	true	WolfeSatisfied	3.0
+60	60	0	-1.459131	1.000000	0.006383	0.126640	0.000690	Main	true	true	WolfeSatisfied	3.1
+61	61	0	-1.451603	1.000000	0.002156	0.060328	-0.000084	Main	true	true	WolfeSatisfied	3.0
+62	62	0	-1.455224	1.000000	0.002515	0.079619	-0.000065	Main	true	true	WolfeSatisfied	6.0
+63	63	0	-1.452905	1.000000	0.006220	0.098444	0.000421	Main	true	true	WolfeSatisfied	5.7
+64	64	0	-1.453682	1.000000	0.006277	0.093234	-0.000254	Main	true	true	WolfeSatisfied	5.8
+65	65	0	-1.454874	1.000000	0.002290	0.043415	-0.000054	Main	true	true	WolfeSatisfied	5.6
+66	66	0	-1.461284	1.000000	0.002695	0.064330	0.000016	Main	true	true	WolfeSatisfied	3.5
+67	67	0	-1.451738	1.000000	0.003574	0.102376	-0.000036	Main	true	true	WolfeSatisfied	3.1
+68	68	0	-1.455914	1.000000	0.002724	0.118314	0.000027	Main	true	true	WolfeSatisfied	3.0
+69	69	0	-1.457105	1.000000	0.002194	0.085102	0.000089	Main	true	true	WolfeSatisfied	3.2
+70	70	0	-1.452355	1.000000	0.001369	0.054796	-0.000016	Main	true	true	WolfeSatisfied	3.3
+71	71	0	-1.457512	1.000000	0.003253	0.066437	0.000153	Main	true	true	WolfeSatisfied	6.0
+72	72	0	-1.452330	1.000000	0.001496	0.047278	-0.000055	Main	true	true	WolfeSatisfied	5.9
+73	73	0	-1.458255	1.000000	0.002889	0.090746	0.000048	Main	true	true	WolfeSatisfied	4.8
+74	74	0	-1.455562	1.000000	0.002563	0.109339	-0.000033	Main	true	true	WolfeSatisfied	3.6
+75	75	0	-1.456832	1.000000	0.003067	0.092902	-0.000184	Main	true	true	WolfeSatisfied	3.7
+76	76	0	-1.453585	1.000000	0.003177	0.106085	-0.000259	Main	true	true	WolfeSatisfied	3.3
+77	77	0	-1.453946	1.000000	0.003458	0.101169	0.000234	Main	true	true	WolfeSatisfied	4.4
+78	78	0	-1.455622	1.000000	0.002242	0.091387	-0.000002	Main	true	true	WolfeSatisfied	5.5
+79	79	0	-1.453182	1.000000	0.003047	0.121083	-0.000227	Main	true	true	WolfeSatisfied	4.5
+80	80	0	-1.454724	1.000000	0.004369	0.079763	0.000152	Main	true	true	WolfeSatisfied	2.9
+81	81	0	-1.453819	1.000000	0.001992	0.055091	-0.000093	Main	true	true	WolfeSatisfied	3.0
+82	82	0	-1.451289	1.000000	0.002773	0.036073	-0.000042	Main	true	true	WolfeSatisfied	2.7
+83	83	0	-1.453371	1.000000	0.003562	0.074267	0.000114	Main	true	true	WolfeSatisfied	2.8
+84	84	0	-1.451909	1.000000	0.002633	0.062373	0.000073	Main	true	true	WolfeSatisfied	3.7
+85	85	0	-1.456300	1.000000	0.002459	0.092142	0.000030	Main	true	true	WolfeSatisfied	3.0
+86	86	0	-1.454414	1.000000	0.001224	0.031135	-0.000007	Main	true	true	WolfeSatisfied	3.0
+87	87	0	-1.456844	1.000000	0.001499	0.059676	-0.000045	Main	true	true	WolfeSatisfied	3.1
+88	88	0	-1.450612	1.000000	0.003203	0.046587	-0.000137	Main	true	true	WolfeSatisfied	2.9
+89	89	0	-1.451243	1.000000	0.002611	0.064742	0.000139	Main	true	true	WolfeSatisfied	3.0
+90	90	0	-1.452382	1.000000	0.004833	0.092443	-0.000243	Main	true	true	WolfeSatisfied	2.9
+91	91	0	-1.454372	1.000000	0.003452	0.079289	-0.000060	Main	true	true	WolfeSatisfied	2.9
+92	92	0	-1.459172	1.000000	0.003524	0.100705	-0.000180	Main	true	true	WolfeSatisfied	3.0
+93	93	0	-1.455419	1.000000	0.004633	0.106959	0.000208	Main	true	true	WolfeSatisfied	3.7
+94	94	0	-1.460626	1.000000	0.002731	0.115432	-0.000129	Main	true	true	WolfeSatisfied	3.0
+95	95	0	-1.451898	1.000000	0.003736	0.069674	0.000197	Main	true	true	WolfeSatisfied	3.0
+96	96	0	-1.452163	1.000000	0.001972	0.086685	-0.000011	Main	true	true	WolfeSatisfied	3.0
+97	97	0	-1.457735	1.000000	0.003472	0.081799	0.000189	Main	true	true	WolfeSatisfied	3.0
+98	98	0	-1.462470	1.000000	0.004551	0.088024	0.000074	Main	true	true	WolfeSatisfied	3.0
+99	99	0	-1.463794	1.000000	0.000886	0.032603	-0.000016	Main	true	true	WolfeSatisfied	3.0
+100	100	0	-1.454228	1.000000	0.002549	0.048378	-0.000105	Main	true	true	WolfeSatisfied	3.0
+101	101	0	-1.459188	1.000000	0.002699	0.030813	-0.000030	Main	true	true	WolfeSatisfied	2.9
+102	102	0	-1.451664	1.000000	0.005468	0.055228	-0.000263	Main	true	true	WolfeSatisfied	3.5
+103	103	0	-1.452058	1.000000	0.004008	0.073696	-0.000156	Main	true	true	WolfeSatisfied	3.7
+104	104	0	-1.456801	1.000000	0.003031	0.083134	-0.000032	Main	true	true	WolfeSatisfied	2.9
+105	105	0	-1.460882	1.000000	0.008332	0.154186	0.001091	Main	true	true	WolfeSatisfied	2.9
+106	106	0	-1.453884	1.000000	0.003207	0.078552	-0.000169	Main	true	true	WolfeSatisfied	2.8
+107	107	0	-1.453035	1.000000	0.004702	0.120207	-0.000070	Main	true	true	WolfeSatisfied	3.0
+108	108	0	-1.451842	1.000000	0.002376	0.062576	-0.000093	Main	true	true	WolfeSatisfied	2.8
+109	109	0	-1.453603	1.000000	0.006756	0.113700	0.000570	Main	true	true	WolfeSatisfied	2.8
+110	110	0	-1.451264	1.000000	0.003991	0.062204	0.000115	Main	true	true	WolfeSatisfied	3.0
+111	111	0	-1.445189	1.000000	0.005300	0.099516	-0.000413	Main	true	true	WolfeSatisfied	3.4
+112	112	0	-1.453282	1.000000	0.004184	0.073127	-0.000254	Main	true	true	WolfeSatisfied	3.3
+113	113	0	-1.457807	1.000000	0.003607	0.085782	0.000147	Main	true	true	WolfeSatisfied	3.0
+114	114	0	-1.452115	1.000000	0.003524	0.094183	0.000242	Main	true	true	WolfeSatisfied	3.0
+115	115	0	-1.453627	1.000000	0.003616	0.077217	0.000182	Main	true	true	WolfeSatisfied	3.0
+116	116	0	-1.457131	1.000000	0.002437	0.059015	-0.000102	Main	true	true	WolfeSatisfied	3.0
+117	117	0	-1.449916	1.000000	0.002140	0.072206	0.000015	Main	true	true	WolfeSatisfied	3.0
+118	118	0	-1.454057	1.000000	0.003155	0.064957	-0.000125	Main	true	true	WolfeSatisfied	3.0
+119	119	0	-1.456266	1.000000	0.008506	0.081484	0.000626	Main	true	true	WolfeSatisfied	3.0
+120	120	0	-1.449574	1.000000	0.006824	0.125188	-0.000636	Main	true	true	WolfeSatisfied	3.5
+121	121	0	-1.454679	1.000000	0.006357	0.158611	0.000058	Main	true	true	WolfeSatisfied	3.6
+122	122	0	-1.457551	1.000000	0.002417	0.072996	-0.000086	Main	true	true	WolfeSatisfied	3.0
+123	123	0	-1.454279	1.000000	0.005465	0.146014	0.000516	Main	true	true	WolfeSatisfied	2.8
+124	124	0	-1.453841	1.000000	0.004720	0.100282	-0.000241	Main	true	true	WolfeSatisfied	3.0
+125	125	0	-1.461176	1.000000	0.006944	0.110710	0.000584	Main	true	true	WolfeSatisfied	2.8
+126	126	0	-1.453780	1.000000	0.005184	0.096333	-0.000330	Main	true	true	WolfeSatisfied	3.0
+127	127	0	-1.452868	1.000000	0.002519	0.072109	-0.000040	Main	true	true	WolfeSatisfied	3.0
+128	128	0	-1.456124	1.000000	0.003696	0.107331	0.000299	Main	true	true	WolfeSatisfied	3.0
+129	129	0	-1.451733	1.000000	0.002613	0.067151	-0.000027	Main	true	true	WolfeSatisfied	3.0
+130	130	0	-1.455415	1.000000	0.001588	0.050130	-0.000052	Main	true	true	WolfeSatisfied	3.7
+131	131	0	-1.456323	1.000000	0.002971	0.079603	-0.000009	Main	true	true	WolfeSatisfied	3.5
+132	132	0	-1.454142	1.000000	0.004673	0.095585	0.000129	Main	true	true	WolfeSatisfied	2.9
+133	133	0	-1.453519	1.000000	0.002610	0.064728	0.000023	Main	true	true	WolfeSatisfied	2.8
+134	134	0	-1.457178	1.000000	0.003014	0.090823	0.000149	Main	true	true	WolfeSatisfied	3.0
+135	135	0	-1.453973	1.000000	0.004006	0.065570	0.000199	Main	true	true	WolfeSatisfied	3.0
+136	136	0	-1.453982	1.000000	0.002840	0.074883	-0.000034	Main	true	true	WolfeSatisfied	2.8
+137	137	0	-1.455926	1.000000	0.005100	0.078584	-0.000150	Main	true	true	WolfeSatisfied	2.9
+138	138	0	-1.451520	1.000000	0.007388	0.095278	-0.000612	Main	true	true	WolfeSatisfied	3.0
+139	139	0	-1.450622	1.000000	0.003941	0.104343	0.000181	Main	true	true	WolfeSatisfied	3.5
+140	140	0	-1.455769	1.000000	0.001777	0.052720	-0.000030	Main	true	true	WolfeSatisfied	3.2
+141	141	0	-1.446977	1.000000	0.003051	0.078876	0.000165	Main	true	true	WolfeSatisfied	3.0
+142	142	0	-1.452893	1.000000	0.002802	0.108683	0.000217	Main	true	true	WolfeSatisfied	2.9
+143	143	0	-1.458555	1.000000	0.002840	0.083540	0.000152	Main	true	true	WolfeSatisfied	2.8
+144	144	0	-1.455668	1.000000	0.001084	0.074415	0.000046	Main	true	true	WolfeSatisfied	3.0
+145	145	0	-1.451122	1.000000	0.002234	0.093652	0.000068	Main	true	true	WolfeSatisfied	2.7
+146	146	0	-1.450064	1.000000	0.004113	0.108733	-0.000294	Main	true	true	WolfeSatisfied	2.9
+147	147	0	-1.458153	1.000000	0.003298	0.075061	-0.000098	Main	true	true	WolfeSatisfied	3.0
+148	148	0	-1.453948	1.000000	0.002938	0.064351	-0.000166	Main	true	true	WolfeSatisfied	3.8
+149	149	0	-1.455620	1.000000	0.005312	0.083230	0.000266	Main	true	true	WolfeSatisfied	3.1
+150	150	0	-1.454568	1.000000	0.002981	0.075599	-0.000173	Main	true	true	WolfeSatisfied	3.6
+151	151	0	-1.456981	1.000000	0.002863	0.070945	0.000180	Main	true	true	WolfeSatisfied	3.4
+152	152	0	-1.451370	1.000000	0.002574	0.048674	-0.000057	Main	true	true	WolfeSatisfied	3.8
+153	153	0	-1.452372	1.000000	0.006496	0.106382	0.000372	Main	true	true	WolfeSatisfied	3.3
+154	154	0	-1.450620	1.000000	0.004105	0.144718	0.000305	Main	true	true	WolfeSatisfied	2.8
+155	155	0	-1.452607	1.000000	0.007121	0.164466	-0.000676	Main	true	true	WolfeSatisfied	3.0
+156	156	0	-1.446475	1.000000	0.003581	0.137807	0.000040	Main	true	true	WolfeSatisfied	3.8
+157	157	0	-1.452373	1.000000	0.005709	0.114936	0.000482	Main	true	true	WolfeSatisfied	2.9
+158	158	0	-1.453502	1.000000	0.002323	0.052933	0.000034	Main	true	true	WolfeSatisfied	3.0
+159	159	0	-1.456805	1.000000	0.002484	0.096195	0.000045	Main	true	true	WolfeSatisfied	3.1
+160	160	0	-1.456308	1.000000	0.003219	0.066668	-0.000171	Main	true	true	WolfeSatisfied	3.1
+161	161	0	-1.448516	1.000000	0.002332	0.056543	0.000025	Main	true	true	WolfeSatisfied	3.3
+162	162	0	-1.454851	1.000000	0.006269	0.144705	0.000246	Main	true	true	WolfeSatisfied	2.8
+163	163	0	-1.447658	1.000000	0.004046	0.117521	-0.000362	Main	true	true	WolfeSatisfied	2.8
+164	164	0	-1.450479	1.000000	0.010232	0.153332	0.001071	Main	true	true	WolfeSatisfied	2.9
+165	165	0	-1.454672	1.000000	0.004940	0.100340	0.000153	Main	true	true	WolfeSatisfied	3.3
+166	166	0	-1.455771	1.000000	0.002221	0.086206	-0.000041	Main	true	true	WolfeSatisfied	3.3
+167	167	0	-1.451993	1.000000	0.003610	0.085692	-0.000112	Main	true	true	WolfeSatisfied	2.8
+168	168	0	-1.461074	1.000000	0.004295	0.078363	0.000147	Main	true	true	WolfeSatisfied	3.1
+169	169	0	-1.457111	1.000000	0.002792	0.082641	-0.000083	Main	true	true	WolfeSatisfied	3.0
+170	170	0	-1.455060	1.000000	0.000881	0.061926	-0.000041	Main	true	true	WolfeSatisfied	3.0
+171	171	0	-1.458250	1.000000	0.002106	0.088749	-0.000021	Main	true	true	WolfeSatisfied	2.7
+172	172	0	-1.459882	1.000000	0.002111	0.083454	0.000061	Main	true	true	WolfeSatisfied	2.9
+173	173	0	-1.456547	1.000000	0.002037	0.053294	-0.000018	Main	true	true	WolfeSatisfied	3.0
+174	174	0	-1.455632	1.000000	0.006243	0.114059	-0.000082	Main	true	true	WolfeSatisfied	3.8
+175	175	0	-1.458877	1.000000	0.005521	0.191024	0.000828	Main	true	true	WolfeSatisfied	3.1
+176	176	0	-1.461262	1.000000	0.006253	0.147434	0.000201	Main	true	true	WolfeSatisfied	2.9
+177	177	0	-1.454259	1.000000	0.002989	0.079612	-0.000145	Main	true	true	WolfeSatisfied	3.1
+178	178	0	-1.454540	1.000000	0.006404	0.106219	0.000553	Main	true	true	WolfeSatisfied	3.0
+179	179	0	-1.451849	1.000000	0.004004	0.104302	0.000109	Main	true	true	WolfeSatisfied	2.8
+180	180	0	-1.451336	1.000000	0.002142	0.068702	-0.000091	Main	true	true	WolfeSatisfied	2.9
+181	181	0	-1.460495	1.000000	0.004114	0.107826	-0.000191	Main	true	true	WolfeSatisfied	2.8
+182	182	0	-1.455456	1.000000	0.004969	0.121094	0.000358	Main	true	true	WolfeSatisfied	2.8
+183	183	0	-1.455830	1.000000	0.007151	0.118213	0.000773	Main	true	true	WolfeSatisfied	3.6
+184	184	0	-1.454802	1.000000	0.003751	0.107811	0.000240	Main	true	true	WolfeSatisfied	3.7
+185	185	0	-1.452941	1.000000	0.002507	0.036312	-0.000017	Main	true	true	WolfeSatisfied	4.4
+186	186	0	-1.460440	1.000000	0.003246	0.036950	-0.000058	Main	true	true	WolfeSatisfied	3.5
+187	187	0	-1.458752	1.000000	0.003295	0.055165	-0.000143	Main	true	true	WolfeSatisfied	2.8
+188	188	0	-1.452872	1.000000	0.002383	0.140246	-0.000038	Main	true	true	WolfeSatisfied	3.2
+189	189	0	-1.462175	1.000000	0.004865	0.091677	0.000282	Main	true	true	WolfeSatisfied	2.8
+190	190	0	-1.457078	1.000000	0.003141	0.134148	-0.000194	Main	true	true	WolfeSatisfied	2.7
+191	191	0	-1.452080	1.000000	0.002287	0.123743	0.000110	Main	true	true	WolfeSatisfied	3.3
+192	192	0	-1.449560	1.000000	0.004019	0.074856	-0.000089	Main	true	true	WolfeSatisfied	3.5
+193	193	0	-1.451364	1.000000	0.002962	0.034235	-0.000020	Main	true	true	WolfeSatisfied	2.9
+194	194	0	-1.459165	1.000000	0.003020	0.055292	-0.000092	Main	true	true	WolfeSatisfied	3.0
+195	195	0	-1.453589	1.000000	0.002858	0.066731	-0.000057	Main	true	true	WolfeSatisfied	2.8
+196	196	0	-1.459279	1.000000	0.006205	0.150119	-0.000173	Main	true	true	WolfeSatisfied	3.0
+197	197	0	-1.460345	1.000000	0.008199	0.200626	0.000700	Main	true	true	WolfeSatisfied	2.9
+198	198	0	-1.451898	1.000000	0.001974	0.106765	0.000089	Main	true	true	WolfeSatisfied	3.0
+199	199	0	-1.458607	1.000000	0.003489	0.097896	-0.000160	Main	true	true	WolfeSatisfied	3.0
+200	200	0	-1.452071	1.000000	0.002438	0.074009	-0.000096	Main	true	true	WolfeSatisfied	3.0
+201	201	0	-1.460416	1.000000	0.006474	0.094738	0.000279	Main	true	true	WolfeSatisfied	3.3
+202	202	0	-1.451576	1.000000	0.002441	0.035868	-0.000040	Main	true	true	WolfeSatisfied	3.1
+203	203	0	-1.451188	1.000000	0.004393	0.098779	0.000379	Main	true	true	WolfeSatisfied	3.0
+204	204	0	-1.453432	1.000000	0.003065	0.065052	-0.000050	Main	true	true	WolfeSatisfied	2.7
+205	205	0	-1.455362	1.000000	0.004062	0.072515	-0.000010	Main	true	true	WolfeSatisfied	3.0
+206	206	0	-1.456332	1.000000	0.003382	0.122624	0.000239	Main	true	true	WolfeSatisfied	3.0
+207	207	0	-1.456119	1.000000	0.003086	0.105583	0.000037	Main	true	true	WolfeSatisfied	2.8
+208	208	0	-1.455004	1.000000	0.003759	0.078233	-0.000259	Main	true	true	WolfeSatisfied	3.0
+209	209	0	-1.452933	1.000000	0.003870	0.107568	0.000287	Main	true	true	WolfeSatisfied	2.9
+210	210	0	-1.458192	1.000000	0.001288	0.118394	0.000034	Main	true	true	WolfeSatisfied	3.4
+211	211	0	-1.458793	1.000000	0.002354	0.084042	0.000102	Main	true	true	WolfeSatisfied	3.0
+212	212	0	-1.457153	1.000000	0.002288	0.106972	-0.000160	Main	true	true	WolfeSatisfied	3.2
+213	213	0	-1.448025	1.000000	0.003792	0.076422	0.000107	Main	true	true	WolfeSatisfied	2.8
+214	214	0	-1.448140	1.000000	0.002437	0.072414	-0.000141	Main	true	true	WolfeSatisfied	3.0
+215	215	0	-1.454419	1.000000	0.008391	0.128458	0.000947	Main	true	true	WolfeSatisfied	3.0
+216	216	0	-1.455018	1.000000	0.002150	0.048368	-0.000083	Main	true	true	WolfeSatisfied	3.0
+217	217	0	-1.452415	1.000000	0.002329	0.030557	-0.000059	Main	true	true	WolfeSatisfied	2.9
+218	218	0	-1.452728	1.000000	0.002931	0.069408	-0.000140	Main	true	true	WolfeSatisfied	3.0
+219	219	0	-1.456277	1.000000	0.006247	0.078794	0.000355	Main	true	true	WolfeSatisfied	4.2
+220	220	0	-1.448789	1.000000	0.003789	0.071089	-0.000195	Main	true	true	WolfeSatisfied	3.0
+221	221	0	-1.456674	1.000000	0.002986	0.087746	-0.000048	Main	true	true	WolfeSatisfied	3.0
+222	222	0	-1.453263	1.000000	0.003294	0.137779	-0.000115	Main	true	true	WolfeSatisfied	3.0
+223	223	0	-1.456817	1.000000	0.003611	0.115721	-0.000308	Main	true	true	WolfeSatisfied	3.0
+224	224	0	-1.456441	1.000000	0.007095	0.095107	0.000344	Main	true	true	WolfeSatisfied	3.0
+225	225	0	-1.454347	1.000000	0.007484	0.113661	-0.000665	Main	true	true	WolfeSatisfied	3.0
+226	226	0	-1.452734	1.000000	0.005713	0.168716	0.000457	Main	true	true	WolfeSatisfied	3.0
+227	227	0	-1.455841	1.000000	0.004396	0.105676	-0.000136	Main	true	true	WolfeSatisfied	3.0
+228	228	0	-1.455389	1.000000	0.002143	0.089911	0.000037	Main	true	true	WolfeSatisfied	4.0
+229	229	0	-1.447618	1.000000	0.004209	0.129694	-0.000026	Main	true	true	WolfeSatisfied	3.0
+230	230	0	-1.457683	1.000000	0.001068	0.088733	0.000040	Main	true	true	WolfeSatisfied	3.0
+231	231	0	-1.457707	1.000000	0.002978	0.114948	0.000027	Main	true	true	WolfeSatisfied	3.0
+232	232	0	-1.459741	1.000000	0.012074	0.106960	0.001156	Main	true	true	WolfeSatisfied	3.0
+233	233	0	-1.455154	1.000000	0.006844	0.109527	-0.000387	Main	true	true	WolfeSatisfied	2.9
+234	234	0	-1.456052	1.000000	0.006254	0.096440	-0.000457	Main	true	true	WolfeSatisfied	2.8
+235	235	0	-1.456040	1.000000	0.004966	0.092421	0.000285	Main	true	true	WolfeSatisfied	2.9
+236	236	0	-1.450397	1.000000	0.003167	0.098970	-0.000132	Main	true	true	WolfeSatisfied	3.0
+237	237	0	-1.455934	1.000000	0.004470	0.113062	-0.000198	Main	true	true	WolfeSatisfied	3.9
+238	238	0	-1.452698	1.000000	0.001048	0.044676	0.000007	Main	true	true	WolfeSatisfied	3.0
+239	239	0	-1.454831	1.000000	0.003821	0.090649	0.000175	Main	true	true	WolfeSatisfied	2.9
+240	240	0	-1.456466	1.000000	0.001328	0.067192	0.000012	Main	true	true	WolfeSatisfied	3.0
+241	241	0	-1.454915	1.000000	0.001829	0.064828	0.000072	Main	true	true	WolfeSatisfied	3.1
+242	242	0	-1.455420	1.000000	0.002247	0.065801	-0.000030	Main	true	true	WolfeSatisfied	3.0
+243	243	0	-1.456788	1.000000	0.001198	0.036243	0.000007	Main	true	true	WolfeSatisfied	2.9
+244	244	0	-1.458050	1.000000	0.003923	0.069784	0.000159	Main	true	true	WolfeSatisfied	2.8
+245	245	0	-1.452100	1.000000	0.002746	0.063340	-0.000137	Main	true	true	WolfeSatisfied	2.9
+246	246	0	-1.454250	1.000000	0.003393	0.067176	-0.000014	Main	true	true	WolfeSatisfied	3.8
+247	247	0	-1.452391	1.000000	0.003604	0.081828	0.000213	Main	true	true	WolfeSatisfied	3.0
+248	248	0	-1.457232	1.000000	0.002290	0.050146	0.000073	Main	true	true	WolfeSatisfied	3.1
+249	249	0	-1.459877	1.000000	0.002619	0.072257	0.000156	Main	true	true	WolfeSatisfied	2.8
+Time spent in resolution 1 (ITK initialization and iterating): 0.916 s.
+Stopping condition: Maximum number of iterations has been reached.
+
+Resolution: 2
+WARNING: The parameter "ShowExactMetricValue", requested at entry number 2, does not exist at all.
+  The default value "false" is used instead.
+WARNING: The parameter "CheckNumberOfSamples", requested at entry number 2, does not exist at all.
+  The default value "true" is used instead.
+WARNING: The parameter "UseMultiThreadingForMetrics", requested at entry number 2, does not exist at all.
+  The default value "true" is used instead.
+Setting the fixed masks took: 0 ms.
+Setting the moving masks took: 0 ms.
+WARNING: The parameter "NumberOfFixedHistogramBins", requested at entry number 2, does not exist at all.
+  The default value "32" is used instead.
+WARNING: The parameter "NumberOfMovingHistogramBins", requested at entry number 2, does not exist at all.
+  The default value "32" is used instead.
+WARNING: The parameter "FixedLimitRangeRatio", requested at entry number 2, does not exist at all.
+  The default value "0.01" is used instead.
+WARNING: The parameter "MovingLimitRangeRatio", requested at entry number 2, does not exist at all.
+  The default value "0.01" is used instead.
+WARNING: The parameter "FixedKernelBSplineOrder", requested at entry number 2, does not exist at all.
+  The default value "0" is used instead.
+WARNING: The parameter "MovingKernelBSplineOrder", requested at entry number 2, does not exist at all.
+  The default value "3" is used instead.
+WARNING: The parameter "MaximumNumberOfLineSearchIterations", requested at entry number 2, does not exist at all.
+  The default value "20" is used instead.
+WARNING: The parameter "StepLength", requested at entry number 2, does not exist at all.
+  The default value "1" is used instead.
+WARNING: The parameter "LineSearchValueTolerance", requested at entry number 2, does not exist at all.
+  The default value "0.0001" is used instead.
+WARNING: The parameter "LineSearchGradientTolerance", requested at entry number 2, does not exist at all.
+  The default value "0.9" is used instead.
+WARNING: The parameter "GradientMagnitudeTolerance", requested at entry number 2, does not exist at all.
+  The default value "1e-06" is used instead.
+WARNING: The parameter "LBFGSUpdateAccuracy", requested at entry number 2, does not exist at all.
+  The default value "5" is used instead.
+WARNING: The parameter "StopIfWolfeNotSatisfied", requested at entry number 2, does not exist at all.
+  The default value "true" is used instead.
+Elastix initialization of all components (for this resolution) took: 0 ms.
+  Computing the fixed image extrema took 0 ms.
+  Computing the moving image extrema took 0 ms.
+Initialization of NormalizedMutualInformation metric took: 0 ms.
+1:ItNr	1a:SrchDirNr	1b:LineItNr	2:Metric	3:StepLength	4a:||Gradient||	4b:||SearchDir||	4c:DirGradient	5:Phase	6a:Wolfe1	6b:Wolfe2	7:LinSrchStopCondition	Time[ms]
+0	0	1	-1.427023	0.192258	0.017749	1.000000	-0.013116	Main	true	true	WolfeSatisfied	7.0
+1	1	0	-1.424272	1.000000	0.016541	0.078088	0.001132	Main	true	true	WolfeSatisfied	3.0
+2	2	0	-1.422854	1.000000	0.009938	0.060510	0.000027	Main	true	true	WolfeSatisfied	2.7
+3	3	0	-1.419650	1.000000	0.012805	0.080547	-0.000172	Main	true	true	WolfeSatisfied	2.9
+4	4	0	-1.424541	1.000000	0.006901	0.096098	-0.000308	Main	true	true	WolfeSatisfied	4.4
+5	5	0	-1.420627	1.000000	0.008771	0.064303	-0.000460	Main	true	true	WolfeSatisfied	3.1
+6	6	0	-1.427282	1.000000	0.009241	0.073238	-0.000101	Main	true	true	WolfeSatisfied	2.9
+7	7	0	-1.426338	1.000000	0.022919	0.135193	0.002850	Main	true	true	WolfeSatisfied	3.0
+8	8	0	-1.427354	1.000000	0.007894	0.063642	-0.000236	Main	true	true	WolfeSatisfied	3.1
+9	9	0	-1.421754	1.000000	0.013044	0.065481	0.000316	Main	true	true	WolfeSatisfied	3.0
+10	10	0	-1.421455	1.000000	0.008455	0.092070	-0.000500	Main	true	true	WolfeSatisfied	3.0
+11	11	0	-1.419822	1.000000	0.005051	0.027461	-0.000078	Main	true	true	WolfeSatisfied	3.0
+12	12	0	-1.426461	1.000000	0.004256	0.073450	0.000044	Main	true	true	WolfeSatisfied	2.8
+13	13	0	-1.424004	1.000000	0.005386	0.068046	0.000032	Main	true	true	WolfeSatisfied	4.0
+14	14	0	-1.424776	1.000000	0.014725	0.098856	0.000128	Main	true	true	WolfeSatisfied	3.6
+15	15	0	-1.416474	1.000000	0.016461	0.134266	0.001673	Main	true	true	WolfeSatisfied	3.0
+16	16	0	-1.428489	1.000000	0.013522	0.119005	0.001237	Main	true	true	WolfeSatisfied	2.8
+17	17	0	-1.418469	1.000000	0.011003	0.108071	0.000486	Main	true	true	WolfeSatisfied	2.9
+18	18	0	-1.429954	1.000000	0.015056	0.090536	0.000967	Main	true	true	WolfeSatisfied	3.1
+19	19	0	-1.425907	1.000000	0.007630	0.042459	-0.000218	Main	true	true	WolfeSatisfied	3.0
+20	20	0	-1.418509	1.000000	0.002575	0.047942	-0.000049	Main	true	true	WolfeSatisfied	3.0
+21	21	0	-1.423059	1.000000	0.007498	0.051020	-0.000323	Main	true	true	WolfeSatisfied	2.8
+22	22	0	-1.430787	1.000000	0.018091	0.110302	0.001717	Main	true	true	WolfeSatisfied	3.9
+23	23	0	-1.420892	1.000000	0.018501	0.147446	0.001481	Main	true	true	WolfeSatisfied	3.1
+24	24	0	-1.427845	1.000000	0.010167	0.094207	-0.000334	Main	true	true	WolfeSatisfied	3.2
+25	25	0	-1.425329	1.000000	0.010737	0.073594	0.000368	Main	true	true	WolfeSatisfied	3.0
+26	26	0	-1.424263	1.000000	0.005251	0.031563	-0.000078	Main	true	true	WolfeSatisfied	5.0
+27	27	0	-1.422883	1.000000	0.005663	0.047305	-0.000041	Main	true	true	WolfeSatisfied	5.8
+28	28	0	-1.421540	1.000000	0.011773	0.089524	0.000784	Main	true	true	WolfeSatisfied	5.7
+29	29	0	-1.421143	1.000000	0.008728	0.081644	0.000269	Main	true	true	WolfeSatisfied	5.5
+30	30	0	-1.422218	1.000000	0.003629	0.032952	-0.000062	Main	true	true	WolfeSatisfied	5.3
+31	31	0	-1.428516	1.000000	0.003947	0.041574	-0.000048	Main	true	true	WolfeSatisfied	5.4
+32	32	0	-1.419434	1.000000	0.006267	0.087718	0.000026	Main	true	true	WolfeSatisfied	5.5
+33	33	0	-1.431496	1.000000	0.004195	0.051663	0.000164	Main	true	true	WolfeSatisfied	5.5
+34	34	0	-1.429521	1.000000	0.015978	0.096182	0.001311	Main	true	true	WolfeSatisfied	5.9
+35	35	0	-1.423070	1.000000	0.005461	0.036497	-0.000044	Main	true	true	WolfeSatisfied	5.7
+36	36	0	-1.426724	1.000000	0.003999	0.044375	-0.000038	Main	true	true	WolfeSatisfied	5.5
+37	37	0	-1.425822	1.000000	0.004315	0.054117	-0.000011	Main	true	true	WolfeSatisfied	5.8
+38	38	0	-1.425025	1.000000	0.007395	0.043318	0.000185	Main	true	true	WolfeSatisfied	5.8
+39	39	0	-1.418993	1.000000	0.010353	0.050790	-0.000454	Main	true	true	WolfeSatisfied	5.8
+40	40	0	-1.422863	1.000000	0.007574	0.064178	-0.000323	Main	true	true	WolfeSatisfied	5.6
+41	41	0	-1.422604	1.000000	0.005619	0.061492	0.000117	Main	true	true	WolfeSatisfied	6.2
+42	42	0	-1.416248	1.000000	0.010823	0.076044	0.000041	Main	true	true	WolfeSatisfied	6.1
+43	43	0	-1.428597	1.000000	0.013273	0.073108	0.000599	Main	true	true	WolfeSatisfied	5.7
+44	44	0	-1.419100	1.000000	0.003206	0.040281	-0.000034	Main	true	true	WolfeSatisfied	5.6
+45	45	0	-1.417430	1.000000	0.013477	0.056539	-0.000675	Main	true	true	WolfeSatisfied	5.7
+46	46	0	-1.424147	1.000000	0.007338	0.073998	0.000504	Main	true	true	WolfeSatisfied	5.5
+47	47	0	-1.428635	1.000000	0.004985	0.057738	0.000050	Main	true	true	WolfeSatisfied	5.5
+48	48	0	-1.431209	1.000000	0.015645	0.108978	0.000598	Main	true	true	WolfeSatisfied	5.6
+49	49	0	-1.423388	1.000000	0.005687	0.099643	-0.000320	Main	true	true	WolfeSatisfied	6.1
+50	50	0	-1.423342	1.000000	0.007191	0.046382	-0.000048	Main	true	true	WolfeSatisfied	5.7
+51	51	0	-1.425733	1.000000	0.005147	0.046421	-0.000036	Main	true	true	WolfeSatisfied	5.5
+52	52	0	-1.420067	1.000000	0.007849	0.076756	0.000216	Main	true	true	WolfeSatisfied	5.7
+53	53	0	-1.424761	1.000000	0.018256	0.113113	0.000866	Main	true	true	WolfeSatisfied	5.6
+54	54	0	-1.427107	1.000000	0.028786	0.132398	0.003170	Main	true	true	WolfeSatisfied	5.6
+55	55	0	-1.416068	1.000000	0.013619	0.082743	-0.000910	Main	true	true	WolfeSatisfied	5.6
+56	56	0	-1.422773	1.000000	0.013102	0.092809	0.000282	Main	true	true	WolfeSatisfied	5.9
+57	57	0	-1.422688	1.000000	0.013611	0.064601	-0.000833	Main	true	true	WolfeSatisfied	5.7
+58	58	1	-1.426871	0.427385	0.005039	0.068226	0.000047	Main	true	true	WolfeSatisfied	8.4
+59	59	0	-1.426981	1.000000	0.006321	0.038162	0.000125	Main	true	true	WolfeSatisfied	3.5
+60	60	1	-1.427456	0.487033	0.010494	0.122629	-0.000278	Main	true	true	WolfeSatisfied	7.3
+61	61	0	-1.424723	1.000000	0.012027	0.065612	-0.000660	Main	true	true	WolfeSatisfied	3.2
+62	62	0	-1.430612	1.000000	0.004816	0.068449	0.000176	Main	true	true	WolfeSatisfied	3.1
+63	63	0	-1.429229	1.000000	0.008046	0.087864	-0.000594	Main	true	true	WolfeSatisfied	3.5
+64	64	0	-1.426053	1.000000	0.014550	0.106034	-0.000054	Main	true	true	WolfeSatisfied	3.0
+65	65	0	-1.431579	1.000000	0.037613	0.227169	0.006743	Main	true	true	WolfeSatisfied	3.4
+66	66	0	-1.426540	1.000000	0.011425	0.110582	-0.000724	Main	true	true	WolfeSatisfied	3.2
+67	67	0	-1.425387	1.000000	0.005499	0.058488	-0.000079	Main	true	true	WolfeSatisfied	2.9
+68	68	0	-1.421439	1.000000	0.011274	0.097631	-0.000627	Main	true	true	WolfeSatisfied	3.2
+69	69	0	-1.425220	1.000000	0.011242	0.094244	0.000301	Main	true	true	WolfeSatisfied	2.8
+70	70	0	-1.425377	1.000000	0.015327	0.112513	0.001108	Main	true	true	WolfeSatisfied	2.9
+71	71	0	-1.425890	1.000000	0.010758	0.062856	0.000024	Main	true	true	WolfeSatisfied	3.0
+72	72	0	-1.428486	1.000000	0.003125	0.091555	-0.000178	Main	true	true	WolfeSatisfied	3.0
+73	73	0	-1.421087	1.000000	0.010412	0.067001	-0.000245	Main	true	true	WolfeSatisfied	3.0
+74	74	0	-1.423669	1.000000	0.009622	0.059205	0.000389	Main	true	true	WolfeSatisfied	2.8
+75	75	0	-1.418198	1.000000	0.003510	0.025835	-0.000039	Main	true	true	WolfeSatisfied	3.5
+76	76	0	-1.419027	1.000000	0.012052	0.095560	0.000986	Main	true	true	WolfeSatisfied	2.8
+77	77	0	-1.425543	1.000000	0.021975	0.115509	0.002007	Main	true	true	WolfeSatisfied	3.2
+78	78	0	-1.419856	1.000000	0.011060	0.066893	-0.000597	Main	true	true	WolfeSatisfied	3.0
+79	79	0	-1.416036	1.000000	0.013717	0.087089	-0.000515	Main	true	true	WolfeSatisfied	3.0
+80	80	0	-1.430246	1.000000	0.023891	0.152152	0.003171	Main	true	true	WolfeSatisfied	3.0
+81	81	0	-1.418830	1.000000	0.005218	0.049257	-0.000169	Main	true	true	WolfeSatisfied	2.8
+82	82	0	-1.430768	1.000000	0.009411	0.073564	-0.000317	Main	true	true	WolfeSatisfied	3.0
+83	83	1	-1.432012	0.402649	0.008463	0.312230	-0.000388	Main	true	true	WolfeSatisfied	5.1
+84	84	0	-1.423082	1.000000	0.009635	0.071177	0.000337	Main	true	true	WolfeSatisfied	3.6
+85	85	0	-1.423642	1.000000	0.005194	0.094962	0.000213	Main	true	true	WolfeSatisfied	3.0
+86	86	0	-1.421235	1.000000	0.003214	0.106731	-0.000092	Main	true	true	WolfeSatisfied	3.3
+87	87	0	-1.424169	1.000000	0.006472	0.048986	-0.000042	Main	true	true	WolfeSatisfied	2.8
+88	88	0	-1.429013	1.000000	0.008384	0.059589	0.000207	Main	true	true	WolfeSatisfied	3.0
+89	89	0	-1.432155	1.000000	0.005811	0.061865	-0.000309	Main	true	true	WolfeSatisfied	2.8
+90	90	0	-1.431956	1.000000	0.013475	0.093406	0.001135	Main	true	true	WolfeSatisfied	3.0
+91	91	0	-1.423511	1.000000	0.010939	0.112439	0.000063	Main	true	true	WolfeSatisfied	2.9
+92	92	0	-1.422922	1.000000	0.003648	0.038502	-0.000056	Main	true	true	WolfeSatisfied	3.9
+93	93	0	-1.420430	1.000000	0.004252	0.047146	0.000134	Main	true	true	WolfeSatisfied	3.0
+94	94	0	-1.420384	1.000000	0.003270	0.024487	-0.000064	Main	true	true	WolfeSatisfied	3.0
+95	95	0	-1.420073	1.000000	0.005990	0.044342	-0.000134	Main	true	true	WolfeSatisfied	3.0
+96	96	0	-1.426278	1.000000	0.018040	0.072058	0.000942	Main	true	true	WolfeSatisfied	2.9
+97	97	0	-1.425139	1.000000	0.008039	0.062819	0.000192	Main	true	true	WolfeSatisfied	3.1
+98	98	0	-1.418380	1.000000	0.006290	0.055066	0.000092	Main	true	true	WolfeSatisfied	2.7
+99	99	0	-1.423295	1.000000	0.006449	0.053756	-0.000027	Main	true	true	WolfeSatisfied	3.0
+100	100	0	-1.421990	1.000000	0.009465	0.045430	0.000222	Main	true	true	WolfeSatisfied	2.8
+101	101	0	-1.421933	1.000000	0.010609	0.058604	-0.000367	Main	true	true	WolfeSatisfied	4.3
+102	102	0	-1.417465	1.000000	0.009295	0.057433	-0.000116	Main	true	true	WolfeSatisfied	3.0
+103	103	0	-1.427238	1.000000	0.009789	0.079736	0.000129	Main	true	true	WolfeSatisfied	2.9
+104	104	0	-1.421989	1.000000	0.010854	0.060987	-0.000585	Main	true	true	WolfeSatisfied	2.9
+105	105	0	-1.426276	1.000000	0.007724	0.077691	0.000477	Main	true	true	WolfeSatisfied	2.8
+106	106	0	-1.419721	1.000000	0.006924	0.038990	-0.000069	Main	true	true	WolfeSatisfied	3.0
+107	107	0	-1.424343	1.000000	0.014184	0.055017	0.000591	Main	true	true	WolfeSatisfied	2.8
+108	108	0	-1.420094	1.000000	0.010981	0.047840	-0.000164	Main	true	true	WolfeSatisfied	3.0
+109	109	0	-1.431441	1.000000	0.008145	0.067567	0.000375	Main	true	true	WolfeSatisfied	2.8
+110	110	0	-1.429178	1.000000	0.009054	0.065919	-0.000011	Main	true	true	WolfeSatisfied	3.2
+111	111	0	-1.424385	1.000000	0.012720	0.081688	0.000821	Main	true	true	WolfeSatisfied	3.6
+112	112	0	-1.417452	1.000000	0.009346	0.047839	-0.000358	Main	true	true	WolfeSatisfied	3.0
+113	113	0	-1.425002	1.000000	0.010994	0.060941	0.000444	Main	true	true	WolfeSatisfied	3.0
+114	114	0	-1.426809	1.000000	0.010687	0.068218	0.000350	Main	true	true	WolfeSatisfied	3.2
+115	115	1	-1.430418	0.515930	0.009139	0.120829	0.000128	Main	true	true	WolfeSatisfied	4.4
+116	116	0	-1.424371	1.000000	0.005311	0.033305	-0.000032	Main	true	true	WolfeSatisfied	2.8
+117	117	0	-1.423144	1.000000	0.010078	0.093084	0.000055	Main	true	true	WolfeSatisfied	2.8
+118	118	0	-1.419134	1.000000	0.006427	0.070375	-0.000317	Main	true	true	WolfeSatisfied	3.0
+119	119	0	-1.423367	1.000000	0.009022	0.053323	-0.000170	Main	true	true	WolfeSatisfied	3.4
+120	120	0	-1.424289	1.000000	0.012872	0.090540	0.000830	Main	true	true	WolfeSatisfied	3.6
+121	121	0	-1.427662	1.000000	0.009326	0.078195	-0.000532	Main	true	true	WolfeSatisfied	3.1
+122	122	0	-1.421747	1.000000	0.011460	0.085067	-0.000833	Main	true	true	WolfeSatisfied	3.0
+123	123	0	-1.420861	1.000000	0.016878	0.089581	0.001244	Main	true	true	WolfeSatisfied	3.0
+124	124	0	-1.428978	1.000000	0.012969	0.067735	-0.000685	Main	true	true	WolfeSatisfied	2.9
+125	125	0	-1.419119	1.000000	0.007840	0.061557	0.000260	Main	true	true	WolfeSatisfied	3.0
+126	126	0	-1.427440	1.000000	0.028568	0.120730	0.002697	Main	true	true	WolfeSatisfied	2.9
+127	127	0	-1.426041	1.000000	0.011610	0.077708	-0.000866	Main	true	true	WolfeSatisfied	3.0
+128	128	0	-1.426733	1.000000	0.007366	0.093611	0.000289	Main	true	true	WolfeSatisfied	3.8
+129	129	0	-1.425935	1.000000	0.012430	0.101860	-0.000099	Main	true	true	WolfeSatisfied	3.0
+130	130	0	-1.426493	1.000000	0.014134	0.105279	0.000987	Main	true	true	WolfeSatisfied	3.2
+131	131	0	-1.422348	1.000000	0.003042	0.045797	0.000032	Main	true	true	WolfeSatisfied	3.0
+132	132	0	-1.418814	1.000000	0.005523	0.043329	0.000133	Main	true	true	WolfeSatisfied	2.8
+133	133	0	-1.422456	1.000000	0.009854	0.073863	0.000391	Main	true	true	WolfeSatisfied	3.0
+134	134	0	-1.426341	1.000000	0.008031	0.062841	-0.000283	Main	true	true	WolfeSatisfied	2.8
+135	135	0	-1.427491	1.000000	0.011538	0.065766	-0.000502	Main	true	true	WolfeSatisfied	2.8
+136	136	0	-1.419993	1.000000	0.008527	0.067369	0.000049	Main	true	true	WolfeSatisfied	2.9
+137	137	0	-1.431573	1.000000	0.004455	0.044428	-0.000018	Main	true	true	WolfeSatisfied	3.6
+138	138	0	-1.419867	1.000000	0.016455	0.103027	0.001623	Main	true	true	WolfeSatisfied	3.0
+139	139	0	-1.422960	1.000000	0.006259	0.074357	0.000293	Main	true	true	WolfeSatisfied	3.2
+140	140	0	-1.424594	1.000000	0.004505	0.081931	-0.000013	Main	true	true	WolfeSatisfied	3.1
+141	141	0	-1.425873	1.000000	0.004812	0.049405	-0.000135	Main	true	true	WolfeSatisfied	2.9
+142	142	0	-1.424480	1.000000	0.006706	0.081767	-0.000150	Main	true	true	WolfeSatisfied	3.0
+143	143	0	-1.427193	1.000000	0.013750	0.105962	0.001302	Main	true	true	WolfeSatisfied	3.1
+144	144	0	-1.433962	1.000000	0.012938	0.100932	0.000520	Main	true	true	WolfeSatisfied	3.0
+145	145	0	-1.425803	1.000000	0.007095	0.046342	-0.000113	Main	true	true	WolfeSatisfied	3.4
+146	146	0	-1.425505	1.000000	0.005834	0.025710	-0.000121	Main	true	true	WolfeSatisfied	3.5
+147	147	0	-1.426548	1.000000	0.004217	0.105903	0.000230	Main	true	true	WolfeSatisfied	2.9
+148	148	0	-1.423865	1.000000	0.010852	0.093041	-0.000904	Main	true	true	WolfeSatisfied	3.0
+149	149	0	-1.425314	1.000000	0.007088	0.063108	0.000402	Main	true	true	WolfeSatisfied	3.1
+150	150	0	-1.421469	1.000000	0.004581	0.061890	0.000181	Main	true	true	WolfeSatisfied	3.1
+151	151	0	-1.421924	1.000000	0.005627	0.063212	0.000157	Main	true	true	WolfeSatisfied	2.8
+152	152	0	-1.425480	1.000000	0.005836	0.067012	-0.000260	Main	true	true	WolfeSatisfied	3.0
+153	153	0	-1.429786	1.000000	0.015094	0.071160	0.000969	Main	true	true	WolfeSatisfied	3.1
+154	154	0	-1.422436	1.000000	0.012117	0.050625	-0.000314	Main	true	true	WolfeSatisfied	3.0
+155	155	1	-1.423378	0.352291	0.003376	0.074541	-0.000043	Main	true	true	WolfeSatisfied	5.3
+156	156	0	-1.428632	1.000000	0.007818	0.037809	-0.000247	Main	true	true	WolfeSatisfied	3.0
+157	157	0	-1.423525	1.000000	0.005269	0.042028	-0.000012	Main	true	true	WolfeSatisfied	3.0
+158	158	0	-1.432709	1.000000	0.011593	0.068445	-0.000045	Main	true	true	WolfeSatisfied	3.0
+159	159	0	-1.418815	1.000000	0.003578	0.093358	-0.000051	Main	true	true	WolfeSatisfied	2.8
+160	160	0	-1.425628	1.000000	0.004846	0.066232	0.000103	Main	true	true	WolfeSatisfied	3.0
+161	161	0	-1.417109	1.000000	0.005981	0.084504	-0.000310	Main	true	true	WolfeSatisfied	2.7
+162	162	0	-1.419357	1.000000	0.010691	0.141304	0.000406	Main	true	true	WolfeSatisfied	2.8
+163	163	0	-1.424230	1.000000	0.013861	0.089676	0.000409	Main	true	true	WolfeSatisfied	3.0
+164	164	0	-1.428903	1.000000	0.006496	0.054567	0.000126	Main	true	true	WolfeSatisfied	3.7
+165	165	0	-1.421766	1.000000	0.004427	0.062389	0.000115	Main	true	true	WolfeSatisfied	3.0
+166	166	0	-1.426562	1.000000	0.007322	0.051065	-0.000201	Main	true	true	WolfeSatisfied	3.0
+167	167	0	-1.420328	1.000000	0.022035	0.123863	0.002182	Main	true	true	WolfeSatisfied	3.1
+168	168	0	-1.428972	1.000000	0.009482	0.095911	0.000380	Main	true	true	WolfeSatisfied	3.0
+169	169	0	-1.423519	1.000000	0.008330	0.106236	-0.000017	Main	true	true	WolfeSatisfied	2.8
+170	170	0	-1.419413	1.000000	0.012288	0.109332	-0.000561	Main	true	true	WolfeSatisfied	3.0
+171	171	0	-1.421823	1.000000	0.010770	0.059035	0.000434	Main	true	true	WolfeSatisfied	2.9
+172	172	0	-1.427490	1.000000	0.009077	0.066720	0.000157	Main	true	true	WolfeSatisfied	3.0
+173	173	0	-1.421797	1.000000	0.003865	0.046950	-0.000056	Main	true	true	WolfeSatisfied	3.8
+174	174	0	-1.423264	1.000000	0.005544	0.052651	-0.000220	Main	true	true	WolfeSatisfied	2.8
+175	175	0	-1.427699	1.000000	0.006703	0.076515	-0.000430	Main	true	true	WolfeSatisfied	3.0
+176	176	0	-1.419449	1.000000	0.010278	0.119291	-0.000605	Main	true	true	WolfeSatisfied	2.8
+177	177	0	-1.420762	1.000000	0.007170	0.077924	0.000033	Main	true	true	WolfeSatisfied	2.9
+178	178	0	-1.429724	1.000000	0.006862	0.077347	0.000292	Main	true	true	WolfeSatisfied	3.0
+179	179	0	-1.421228	1.000000	0.007208	0.069109	-0.000337	Main	true	true	WolfeSatisfied	3.0
+180	180	0	-1.421592	1.000000	0.044550	0.154279	0.005698	Main	true	true	WolfeSatisfied	2.9
+181	181	0	-1.427873	1.000000	0.023544	0.094331	0.000511	Main	true	true	WolfeSatisfied	3.0
+182	182	0	-1.422599	1.000000	0.006683	0.042766	-0.000201	Main	true	true	WolfeSatisfied	3.5
+183	183	0	-1.424954	1.000000	0.006070	0.090371	0.000301	Main	true	true	WolfeSatisfied	3.5
+184	184	0	-1.426265	1.000000	0.007388	0.041198	-0.000058	Main	true	true	WolfeSatisfied	2.9
+185	185	0	-1.423710	1.000000	0.005473	0.053397	-0.000227	Main	true	true	WolfeSatisfied	2.8
+186	186	0	-1.422078	1.000000	0.002569	0.026911	0.000004	Main	true	true	WolfeSatisfied	3.0
+187	187	0	-1.426344	1.000000	0.004697	0.040632	-0.000162	Main	true	true	WolfeSatisfied	3.0
+188	188	0	-1.424402	1.000000	0.004430	0.033174	-0.000100	Main	true	true	WolfeSatisfied	3.0
+189	189	0	-1.418600	1.000000	0.015252	0.120075	0.000797	Main	true	true	WolfeSatisfied	3.1
+190	190	0	-1.422682	1.000000	0.005852	0.092899	-0.000083	Main	true	true	WolfeSatisfied	3.0
+191	191	0	-1.427675	1.000000	0.006013	0.097603	-0.000382	Main	true	true	WolfeSatisfied	3.2
+192	192	0	-1.424611	1.000000	0.006524	0.127452	0.000238	Main	true	true	WolfeSatisfied	3.6
+193	193	0	-1.439061	1.000000	0.006273	0.100347	-0.000423	Main	true	true	WolfeSatisfied	3.2
+194	194	0	-1.416188	1.000000	0.013439	0.145037	-0.000112	Main	true	true	WolfeSatisfied	3.1
+195	195	0	-1.423538	1.000000	0.007882	0.072628	-0.000265	Main	true	true	WolfeSatisfied	3.0
+196	196	0	-1.426933	1.000000	0.011778	0.130823	0.000792	Main	true	true	WolfeSatisfied	2.9
+197	197	0	-1.428993	1.000000	0.018974	0.190023	0.001828	Main	true	true	WolfeSatisfied	3.0
+198	198	0	-1.428212	1.000000	0.032585	0.198022	0.002944	Main	true	true	WolfeSatisfied	3.0
+199	199	0	-1.426415	1.000000	0.007753	0.096553	-0.000307	Main	true	true	WolfeSatisfied	3.0
+200	200	0	-1.423786	1.000000	0.013300	0.115206	0.001166	Main	true	true	WolfeSatisfied	3.3
+201	201	0	-1.429580	1.000000	0.006963	0.058194	-0.000022	Main	true	true	WolfeSatisfied	3.0
+202	202	0	-1.420036	1.000000	0.007732	0.062968	0.000443	Main	true	true	WolfeSatisfied	4.1
+203	203	0	-1.419726	1.000000	0.005767	0.065000	-0.000234	Main	true	true	WolfeSatisfied	2.9
+204	204	0	-1.425276	1.000000	0.012416	0.071926	-0.000380	Main	true	true	WolfeSatisfied	3.0
+205	205	1	-1.426860	0.472940	0.012943	0.118233	-0.000044	Main	true	true	WolfeSatisfied	4.4
+206	206	0	-1.424480	1.000000	0.009125	0.073040	0.000323	Main	true	true	WolfeSatisfied	2.8
+207	207	0	-1.426684	1.000000	0.010863	0.062359	-0.000489	Main	true	true	WolfeSatisfied	3.0
+208	208	0	-1.424757	1.000000	0.003857	0.040440	-0.000064	Main	true	true	WolfeSatisfied	3.6
+209	209	0	-1.424850	1.000000	0.012467	0.107265	0.000692	Main	true	true	WolfeSatisfied	2.9
+210	210	0	-1.414246	1.000000	0.015693	0.095315	-0.001163	Main	true	true	WolfeSatisfied	3.0
+211	211	1	-1.426101	0.371709	0.021849	0.271803	-0.002325	Main	true	true	WolfeSatisfied	4.6
+212	212	0	-1.422826	1.000000	0.008015	0.060204	-0.000365	Main	true	true	WolfeSatisfied	3.0
+213	213	0	-1.417610	1.000000	0.009495	0.083458	0.000301	Main	true	true	WolfeSatisfied	2.9
+214	214	0	-1.425989	1.000000	0.016009	0.155220	-0.000372	Main	true	true	WolfeSatisfied	3.0
+215	215	0	-1.426370	1.000000	0.015613	0.128987	0.000346	Main	true	true	WolfeSatisfied	3.1
+216	216	0	-1.428462	1.000000	0.004502	0.052506	0.000141	Main	true	true	WolfeSatisfied	3.4
+217	217	0	-1.421826	1.000000	0.004234	0.036871	-0.000143	Main	true	true	WolfeSatisfied	3.9
+218	218	0	-1.433838	1.000000	0.021255	0.078170	0.000928	Main	true	true	WolfeSatisfied	3.1
+219	219	0	-1.420989	1.000000	0.014975	0.062827	-0.000865	Main	true	true	WolfeSatisfied	3.0
+220	220	0	-1.415318	1.000000	0.004474	0.049401	0.000063	Main	true	true	WolfeSatisfied	2.8
+221	221	0	-1.430937	1.000000	0.005913	0.055716	0.000029	Main	true	true	WolfeSatisfied	2.8
+222	222	0	-1.426680	1.000000	0.004336	0.043332	-0.000039	Main	true	true	WolfeSatisfied	3.0
+223	223	0	-1.418829	1.000000	0.005562	0.064769	-0.000086	Main	true	true	WolfeSatisfied	2.9
+224	224	0	-1.426028	1.000000	0.013028	0.129755	0.001285	Main	true	true	WolfeSatisfied	3.0
+225	225	0	-1.424084	1.000000	0.008013	0.053332	-0.000120	Main	true	true	WolfeSatisfied	3.0
+226	226	0	-1.416182	1.000000	0.009067	0.072314	-0.000569	Main	true	true	WolfeSatisfied	3.5
+227	227	1	-1.430488	0.452015	0.010214	0.164258	-0.000271	Main	true	true	WolfeSatisfied	4.5
+228	228	0	-1.424866	1.000000	0.004792	0.032263	-0.000044	Main	true	true	WolfeSatisfied	3.0
+229	229	0	-1.430434	1.000000	0.005552	0.066140	-0.000268	Main	true	true	WolfeSatisfied	3.0
+230	230	0	-1.428329	1.000000	0.010235	0.077529	0.000255	Main	true	true	WolfeSatisfied	2.9
+231	231	0	-1.423047	1.000000	0.039299	0.170153	0.006247	Main	true	true	WolfeSatisfied	2.8
+232	232	0	-1.418274	1.000000	0.016334	0.080626	-0.001054	Main	true	true	WolfeSatisfied	3.0
+233	233	0	-1.429503	1.000000	0.010400	0.040715	-0.000391	Main	true	true	WolfeSatisfied	2.7
+234	234	1	-1.419244	0.473589	0.004467	0.092182	-0.000017	Main	true	true	WolfeSatisfied	5.7
+235	235	0	-1.430742	1.000000	0.007888	0.051851	0.000271	Main	true	true	WolfeSatisfied	3.0
+236	236	0	-1.423908	1.000000	0.003920	0.033290	-0.000103	Main	true	true	WolfeSatisfied	3.0
+237	237	0	-1.417359	1.000000	0.008990	0.092565	0.000028	Main	true	true	WolfeSatisfied	3.0
+238	238	0	-1.421481	1.000000	0.013195	0.103399	0.001044	Main	true	true	WolfeSatisfied	3.1
+239	239	0	-1.425904	1.000000	0.011409	0.132252	0.000365	Main	true	true	WolfeSatisfied	3.0
+240	240	0	-1.428760	1.000000	0.005751	0.059064	-0.000239	Main	true	true	WolfeSatisfied	3.0
+241	241	0	-1.427098	1.000000	0.016110	0.081162	0.000325	Main	true	true	WolfeSatisfied	3.0
+242	242	0	-1.430613	1.000000	0.004675	0.081638	0.000032	Main	true	true	WolfeSatisfied	3.0
+243	243	0	-1.427135	1.000000	0.007295	0.079931	0.000044	Main	true	true	WolfeSatisfied	3.4
+244	244	0	-1.425283	1.000000	0.013228	0.091110	0.000519	Main	true	true	WolfeSatisfied	3.2
+245	245	1	-1.433244	0.395484	0.013317	0.138561	-0.001033	Main	true	true	WolfeSatisfied	4.4
+246	246	0	-1.423793	1.000000	0.007338	0.039387	-0.000235	Main	true	true	WolfeSatisfied	3.0
+247	247	0	-1.422781	1.000000	0.014852	0.091582	-0.001014	Main	true	true	WolfeSatisfied	2.9
+248	248	0	-1.429321	1.000000	0.011477	0.094194	0.000926	Main	true	true	WolfeSatisfied	3.0
+249	249	0	-1.431388	1.000000	0.007011	0.083025	0.000119	Main	true	true	WolfeSatisfied	3.0
+Time spent in resolution 2 (ITK initialization and iterating): 0.975 s.
+Stopping condition: Maximum number of iterations has been reached.
+
+Resolution: 3
+WARNING: The parameter "ShowExactMetricValue", requested at entry number 3, does not exist at all.
+  The default value "false" is used instead.
+WARNING: The parameter "CheckNumberOfSamples", requested at entry number 3, does not exist at all.
+  The default value "true" is used instead.
+WARNING: The parameter "UseMultiThreadingForMetrics", requested at entry number 3, does not exist at all.
+  The default value "true" is used instead.
+Setting the fixed masks took: 0 ms.
+Setting the moving masks took: 0 ms.
+WARNING: The parameter "NumberOfFixedHistogramBins", requested at entry number 3, does not exist at all.
+  The default value "32" is used instead.
+WARNING: The parameter "NumberOfMovingHistogramBins", requested at entry number 3, does not exist at all.
+  The default value "32" is used instead.
+WARNING: The parameter "FixedLimitRangeRatio", requested at entry number 3, does not exist at all.
+  The default value "0.01" is used instead.
+WARNING: The parameter "MovingLimitRangeRatio", requested at entry number 3, does not exist at all.
+  The default value "0.01" is used instead.
+WARNING: The parameter "FixedKernelBSplineOrder", requested at entry number 3, does not exist at all.
+  The default value "0" is used instead.
+WARNING: The parameter "MovingKernelBSplineOrder", requested at entry number 3, does not exist at all.
+  The default value "3" is used instead.
+WARNING: The parameter "MaximumNumberOfLineSearchIterations", requested at entry number 3, does not exist at all.
+  The default value "20" is used instead.
+WARNING: The parameter "StepLength", requested at entry number 3, does not exist at all.
+  The default value "1" is used instead.
+WARNING: The parameter "LineSearchValueTolerance", requested at entry number 3, does not exist at all.
+  The default value "0.0001" is used instead.
+WARNING: The parameter "LineSearchGradientTolerance", requested at entry number 3, does not exist at all.
+  The default value "0.9" is used instead.
+WARNING: The parameter "GradientMagnitudeTolerance", requested at entry number 3, does not exist at all.
+  The default value "1e-06" is used instead.
+WARNING: The parameter "LBFGSUpdateAccuracy", requested at entry number 3, does not exist at all.
+  The default value "5" is used instead.
+WARNING: The parameter "StopIfWolfeNotSatisfied", requested at entry number 3, does not exist at all.
+  The default value "true" is used instead.
+Elastix initialization of all components (for this resolution) took: 0 ms.
+  Computing the fixed image extrema took 0 ms.
+  Computing the moving image extrema took 0 ms.
+Initialization of NormalizedMutualInformation metric took: 1 ms.
+1:ItNr	1a:SrchDirNr	1b:LineItNr	2:Metric	3:StepLength	4a:||Gradient||	4b:||SearchDir||	4c:DirGradient	5:Phase	6a:Wolfe1	6b:Wolfe2	7:LinSrchStopCondition	Time[ms]
+0	0	2	-1.524183	0.099393	0.168522	1.000000	-0.060748	Main	true	true	WolfeSatisfied	10.3
+1	1	0	-1.529143	1.000000	0.228704	0.068869	0.007325	Main	true	true	WolfeSatisfied	3.5
+2	2	0	-1.532588	1.000000	0.088509	0.025635	0.000074	Main	true	true	WolfeSatisfied	3.1
+3	3	0	-1.529710	1.000000	0.060587	0.013354	-0.000246	Main	true	true	WolfeSatisfied	3.0
+4	4	1	-1.534020	0.433744	0.047783	0.012705	-0.000127	Main	true	true	WolfeSatisfied	4.6
+5	5	1	-1.531070	0.286153	0.043521	0.009832	-0.000034	Main	true	true	WolfeSatisfied	4.8
+6	6	1	-1.528560	0.449553	0.030891	0.003079	-0.000030	Main	true	true	WolfeSatisfied	6.6
+7	7	1	-1.532592	0.203435	0.030219	0.005842	0.000076	Main	true	true	WolfeSatisfied	5.9
+8	8	1	-1.533241	0.414835	0.031460	0.002199	0.000013	Main	true	true	WolfeSatisfied	5.7
+9	9	1	-1.533423	0.481748	0.015687	0.000567	0.000001	Main	true	true	WolfeSatisfied	5.8
+10	10	1	-1.537016	0.236702	0.033185	0.001324	0.000007	Main	true	true	WolfeSatisfied	5.2
+11	11	1	-1.537752	0.317256	0.039275	0.000641	0.000005	Main	true	true	WolfeSatisfied	5.2
+12	12	0	-1.530587	1.000000	0.011484	0.000303	0.000003	Main	true	true	WolfeSatisfied	4.4
+13	13	0	-1.535837	1.000000	0.022480	0.000420	0.000005	Main	true	true	WolfeSatisfied	3.3
+14	14	0	-1.530139	1.000000	0.033736	0.000400	0.000004	Main	true	true	WolfeSatisfied	3.2
+15	15	0	-1.529038	1.000000	0.022362	0.000292	-0.000003	Main	true	true	WolfeSatisfied	3.1
+16	16	1	-1.531469	0.225835	0.027667	0.000776	-0.000011	Main	true	true	WolfeSatisfied	4.5
+17	17	1	-1.533463	0.220918	0.017184	0.000381	-0.000004	Main	true	true	WolfeSatisfied	4.6
+18	18	1	-1.532583	0.371286	0.030001	0.000220	-0.000001	Main	true	true	WolfeSatisfied	4.9
+19	19	1	-1.530452	0.478861	0.036805	0.000061	-0.000000	Main	true	true	WolfeSatisfied	4.6
+20	20	2	-1.525804	0.093824	0.042044	0.000188	0.000002	Main	true	true	WolfeSatisfied	5.9
+21	21	0	-1.534328	1.000000	0.020513	0.000117	-0.000002	Main	true	true	WolfeSatisfied	3.1
+22	22	0	-1.529308	1.000000	0.027779	0.000131	0.000002	Main	true	true	WolfeSatisfied	3.1
+23	23	0	-1.532236	1.000000	0.046644	0.000129	0.000004	Main	true	true	WolfeSatisfied	3.1
+24	24	0	-1.529262	1.000000	0.028334	0.000067	-0.000000	Main	true	true	WolfeSatisfied	3.1
+25	25	0	-1.526638	1.000000	0.025044	0.000118	0.000001	Main	true	true	WolfeSatisfied	3.7
+26	26	0	-1.529620	1.000000	0.019436	0.000057	-0.000001	Main	true	true	WolfeSatisfied	3.7
+27	27	1	-1.532005	0.104318	0.028606	0.000319	-0.000003	Main	true	true	WolfeSatisfied	4.8
+28	28	1	-1.531066	0.156086	0.017662	0.000103	-0.000001	Main	true	true	WolfeSatisfied	4.8
+29	29	1	-1.531659	0.116483	0.045853	0.000294	0.000004	Main	true	true	WolfeSatisfied	4.8
+30	30	0	-1.535120	1.000000	0.017701	0.000046	0.000001	Main	true	true	WolfeSatisfied	3.3
+31	31	0	-1.532491	1.000000	0.034384	0.000057	0.000001	Main	true	true	WolfeSatisfied	3.5
+32	32	0	-1.528562	1.000000	0.046448	0.000036	0.000001	Main	true	true	WolfeSatisfied	3.9
+33	33	0	-1.529365	1.000000	0.029527	0.000022	-0.000000	Main	true	true	WolfeSatisfied	4.9
+34	34	0	-1.530709	1.000000	0.026933	0.000014	-0.000000	Main	true	true	WolfeSatisfied	3.4
+35	35	0	-1.532820	1.000000	0.016168	0.000030	-0.000000	Main	true	true	WolfeSatisfied	3.4
+36	36	1	-1.535203	0.391031	0.019193	0.000086	-0.000001	Main	true	true	WolfeSatisfied	4.7
+37	37	1	-1.532616	0.083992	0.017224	0.000099	-0.000000	Main	true	true	WolfeSatisfied	5.3
+38	38	1	-1.525445	0.182729	0.032253	0.000024	0.000000	Main	true	true	WolfeSatisfied	4.6
+39	39	1	-1.529105	0.150080	0.025737	0.000009	-0.000000	Main	true	true	WolfeSatisfied	5.9
+40	40	19	-1.529394	0.017350	0.054658	0.000011	-0.000000	Main	true	false	MaxNrIterations	33.5
+Time spent in resolution 3 (ITK initialization and iterating): 0.231 s.
+Stopping condition: Wolfe conditions are not satisfied.
+
+
+=============== start of TransformParameterFile ===============
+(Transform "AffineTransform")
+(NumberOfParameters 6)
+(TransformParameters 1.000000 0.000000 0.000000 1.000000 12.999996 16.999994)
+(InitialTransformParametersFileName "NoInitialTransform")
+(UseBinaryFormatForTransformationParameters "false")
+(HowToCombineTransforms "Compose")
+
+// Image specific
+(FixedImageDimension 2)
+(MovingImageDimension 2)
+(FixedInternalImagePixelType "float")
+(MovingInternalImagePixelType "float")
+(Size 221 257)
+(Index 0 0)
+(Spacing 1.0000000000 1.0000000000)
+(Origin 0.0000000000 0.0000000000)
+(Direction 1.0000000000 0.0000000000 0.0000000000 1.0000000000)
+(UseDirectionCosines "true")
+
+// AdvancedAffineTransform specific
+(CenterOfRotationPoint 110.0000000000 128.0000000000)
+
+// ResampleInterpolator specific
+(ResampleInterpolator "FinalBSplineInterpolator")
+(FinalBSplineInterpolationOrder 3)
+
+// Resampler specific
+(Resampler "DefaultResampler")
+(DefaultPixelValue 0.000000)
+(ResultImageFormat "nii")
+(ResultImagePixelType "short")
+(CompressResultImage "false")
+
+=============== end of TransformParameterFile ===============
+
+Creating the TransformParameterFile took 0.02s
+
+Registration result checksum: 1490621778
+
+Applying final transform ...
+  Applying final transform took 0.01s
+
+Final metric value  = -1.533324
+Time spent on saving the results, applying the final transform etc.: 34 ms.
+Running elastix with parameter file 0: "Parameters/Parameters_Affine.txt", has finished.
+
+
+Current time: Thu Mar 25 12:46:06 2021.
+Time used for running elastix with this parameter file:
+  2.9s.
+
+-------------------------------------------------------------------------
+
+Total time elapsed: 2.9s.
+
